@@ -43,8 +43,9 @@ import {
   listConversationThreads,
   reconcileInterruptedConversations,
 } from './conversation-service';
-import { ConversationManager, ConversationManagerError } from './conversation-manager';
+import { ConversationManager, ConversationManagerError, createCodexConversationExecutor } from './conversation-manager';
 import { parseDealArtifactRoute, readDealArtifact } from './artifact-service';
+import { getOllamaStatus, createOllamaConversationExecutor } from './ollama-service';
 
 // ---------------------------------------------------------------------------
 // Resolve paths
@@ -586,6 +587,15 @@ const conversationManager = new ConversationManager({
   maxConcurrent: Number.isFinite(configuredConversationConcurrency) ? configuredConversationConcurrency : 2,
   maxQueued: Number.isFinite(configuredConversationQueueLimit) ? configuredConversationQueueLimit : 16,
   onEvent: (event) => broadcast({ type: 'conversation', event }),
+  executor: (request, onActivity) => {
+    const provider = (process.env.CRE_LLM_PROVIDER || 'ollama').toLowerCase();
+    if (provider === 'codex') {
+      const codexExecutor = createCodexConversationExecutor();
+      return codexExecutor(request, onActivity);
+    }
+    const ollamaExecutor = createOllamaConversationExecutor();
+    return ollamaExecutor(request, onActivity);
+  },
 });
 
 const recoveredConversations = reconcileInterruptedConversations(conversationServiceContext);
@@ -1125,7 +1135,16 @@ const httpServer = createServer(async (req: IncomingMessage, res: ServerResponse
     // GET /api/codex/status - report local Codex CLI auth state without exposing credentials
     if (method === 'GET' && url === '/api/codex/status') {
       if (!ensureLoopbackRequest(req, res)) return;
-      sendJson(res, 200, readCodexStatus());
+      const codexStatus = readCodexStatus();
+      const ollamaStatus = await getOllamaStatus();
+      sendJson(res, 200, {
+        ...codexStatus,
+        ollama: ollamaStatus,
+        installed: Boolean(codexStatus.installed || ollamaStatus.available),
+        loggedIn: Boolean(codexStatus.loggedIn || ollamaStatus.available),
+        usingChatGpt: Boolean(codexStatus.usingChatGpt || ollamaStatus.available),
+        version: ollamaStatus.available ? `Ollama (${ollamaStatus.model})` : (typeof codexStatus.version === 'string' ? codexStatus.version : null),
+      });
       return;
     }
 
@@ -1536,25 +1555,29 @@ const httpServer = createServer(async (req: IncomingMessage, res: ServerResponse
       }
       try {
         const codexStatus = readCodexStatus();
+        const ollamaStatus = await getOllamaStatus();
         const codexReady = Boolean(
           codexStatus.installed && codexStatus.loggedIn && codexStatus.usingChatGpt,
         );
+        const ollamaReady = Boolean(ollamaStatus.available);
+        const isReady = conversationsEnabled && (ollamaReady || codexReady);
+
         sendConversationJson(res, 200, {
           enabled: conversationsEnabled,
           runtime: {
-            ready: conversationsEnabled && codexReady,
-            installed: Boolean(codexStatus.installed),
-            loggedIn: Boolean(codexStatus.loggedIn),
-            usingChatGpt: Boolean(codexStatus.usingChatGpt),
-            version: typeof codexStatus.version === 'string' ? codexStatus.version : null,
+            ready: isReady,
+            installed: ollamaReady || Boolean(codexStatus.installed),
+            loggedIn: ollamaReady || Boolean(codexStatus.loggedIn),
+            usingChatGpt: ollamaReady || Boolean(codexStatus.usingChatGpt),
+            version: ollamaReady ? `Ollama (${ollamaStatus.model})` : (typeof codexStatus.version === 'string' ? codexStatus.version : null),
             message: !conversationsEnabled
               ? 'Agent conversations are disabled in this local runtime.'
-              : !codexStatus.installed
-                ? 'Install Codex to start live agent conversations.'
-                : !codexStatus.loggedIn
-                  ? 'Sign in to Codex with ChatGPT to start live agent conversations.'
-                  : !codexStatus.usingChatGpt
-                    ? 'Reconnect Codex using Sign in with ChatGPT to start live agent conversations.'
+              : ollamaReady
+                ? `Ollama is ready (${ollamaStatus.model}).`
+                : !codexStatus.installed
+                  ? 'Start Ollama or install Codex to enable live agent conversations.'
+                  : !codexStatus.loggedIn
+                    ? 'Sign in to Codex with ChatGPT or start Ollama.'
                     : 'Codex / ChatGPT is ready.',
           },
           ...listConversationThreads(conversationServiceContext, route.dealId),
