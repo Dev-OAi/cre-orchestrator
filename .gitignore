@@ -34,10 +34,35 @@ __pycache__/
 # Local OCR language-data cache (tesseract.js)
 *.traineddata
 
-# Environment
+# Environment & Secrets (NEVER COMMIT — protects API keys & credentials)
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+*.env
+*.env.*
+*.key
+*.pem
+*.cert
+*.crt
+*.pfx
+*.p12
+credentials.json
+secrets.json
+auth.json
+token.json
+api-keys.json
+*key*.json
+*secret*.json
+
+# Local LLMs & Runtimes (Ollama, HuggingFace, Local Weights & Caches)
+.ollama/
+ollama/
+ollama_models/
+*.gguf
+*.bin
+*.safetensors
+.cache/
+hf_cache/
 
 # OS artifacts
 .DS_Store
