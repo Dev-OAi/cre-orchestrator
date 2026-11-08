@@ -748,14 +748,31 @@ function validCitations(
 export function normalizeConversationResponse(
   response: ModelConversationResponse,
   bundle: ConversationEvidenceBundle,
+  options?: { localModel?: boolean },
 ): Pick<ConversationMessage, 'content' | 'citations' | 'confidence' | 'unanswered' | 'followUpSuggestions'> {
   const citations = validCitations(response, bundle)
   const rawAnswer = safeText(response.answer, 20_000)
   const modelUnanswered = response.unanswered === true
+  const isLocalModel = options?.localModel ?? (process.env.CRE_LLM_PROVIDER === 'ollama')
+
+  // In local-model relaxed mode, show the model's answer even without verified
+  // citations.  The response is still flagged unanswered / low-confidence so
+  // the UI can display an "unverified" badge.
   const unanswered = modelUnanswered || citations.length === 0
-  const content = citations.length === 0 && !modelUnanswered
-    ? 'I could not verify a source-backed answer from the selected deal documents.'
-    : rawAnswer || 'I could not answer this question from the selected deal documents.'
+  let content: string
+  if (citations.length > 0) {
+    // Verified citations exist — use the model answer as-is
+    content = rawAnswer || 'I could not answer this question from the selected deal documents.'
+  } else if (isLocalModel && rawAnswer) {
+    // Local model, no verified citations, but the model did produce an answer —
+    // show it with an [unverified] prefix so users know it lacks source backing.
+    content = '⚠️ **[Unverified — local model]** ' + rawAnswer
+  } else if (modelUnanswered) {
+    content = rawAnswer || 'I could not answer this question from the selected deal documents.'
+  } else {
+    content = 'I could not verify a source-backed answer from the selected deal documents.'
+  }
+
   return {
     content,
     citations,
