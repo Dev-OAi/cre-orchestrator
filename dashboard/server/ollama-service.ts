@@ -24,7 +24,7 @@ export async function getOllamaStatus(
   customModel?: string,
 ): Promise<OllamaStatus> {
   const host = customHost || process.env.OLLAMA_HOST || 'http://127.0.0.1:11434'
-  const targetModel = customModel || process.env.OLLAMA_MODEL || 'lfm2.5-thinking:1.2b'
+  const targetModel = customModel || process.env.OLLAMA_MODEL || 'gemma4:e2b'
 
   const now = Date.now()
   if (cachedStatus && now - cachedStatus.timestamp < CACHE_TTL_MS) {
@@ -91,7 +91,7 @@ export function createOllamaConversationExecutor(
   customHost?: string,
 ): ConversationExecutor {
   const host = customHost || process.env.OLLAMA_HOST || 'http://127.0.0.1:11434'
-  const configuredModel = customModel || process.env.OLLAMA_MODEL || 'lfm2.5-thinking:1.2b'
+  const configuredModel = customModel || process.env.OLLAMA_MODEL || 'gemma4:e2b'
 
   return (request: ConversationExecutorRequest, onActivity: (activity: ConversationActivity) => void): ConversationExecutionHandle => {
     let cancelled = false
