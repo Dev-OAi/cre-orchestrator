@@ -1,0 +1,21 @@
+<job>
+<script language="VBScript">
+Set WshShell = CreateObject("WScript.Shell")
+Set fso = CreateObject("Scripting.FileSystemObject")
+strDir = fso.GetParentFolderName(WScript.ScriptFullName)
+
+' Set environment variables for the session
+Set oEnv = WshShell.Environment("PROCESS")
+oEnv("CRE_LLM_PROVIDER") = "ollama"
+oEnv("OLLAMA_MODEL") = "gemma4:e2b"
+oEnv("OLLAMA_HOST") = "http://127.0.0.1:11434"
+
+' Create desktop or folder link if needed, or launch batch file
+WshShell.CurrentDirectory = strDir
+WshShell.Run "cmd /c start-cre-project.bat", 1, False
+
+' Give Vite/Server 4 seconds to bind, then open browser
+WScript.Sleep 4000
+WshShell.Run "http://localhost:5174", 1, False
+</script>
+</job>
