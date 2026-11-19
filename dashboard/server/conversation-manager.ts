@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'child_process'
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { isAbsolute, join, relative, resolve } from 'path'
-import { randomUUID } from 'crypto'
+import { randomUUID } from 'crypto'; 
 import type {
   AgentConversationThread,
   ConversationActivity,
@@ -750,28 +750,29 @@ export function normalizeConversationResponse(
   bundle: ConversationEvidenceBundle,
   options?: { localModel?: boolean },
 ): Pick<ConversationMessage, 'content' | 'citations' | 'confidence' | 'unanswered' | 'followUpSuggestions'> {
-  const citations = validCitations(response, bundle)
-  const rawAnswer = safeText(response.answer, 20_000)
-  const modelUnanswered = response.unanswered === true
-  const provider = (process.env.CRE_LLM_PROVIDER || 'ollama').toLowerCase()
-  const isLocalModel = options?.localModel ?? (provider === 'ollama')
+  // Updated handling of answer / citations
+  const citations = validCitations(response, bundle);
+  const rawAnswer = safeText(response.answer, 20_000);
+  const provider = (process.env.CRE_LLM_PROVIDER || 'ollama').toLowerCase();
+  const isLocalModel = options?.localModel ?? (provider === 'ollama');
 
-  // In local-model relaxed mode, show the model's answer even without verified
-  // citations.  The response is still flagged unanswered / low-confidence so
-  // the UI can display an "unverified" badge.
-  const unanswered = modelUnanswered || citations.length === 0
-  let content: string
+  let content: string;
+
+  // 1️⃣ If we have verified citations – use answer as‑is (or fallback text)
   if (citations.length > 0) {
-    // Verified citations exist — use the model answer as-is
-    content = rawAnswer || 'I could not answer this question from the selected deal documents.'
-  } else if (isLocalModel && rawAnswer) {
-    // Local model, no verified citations, but the model did produce an answer —
-    // show it with an [unverified] prefix so users know it lacks source backing.
-    content = '⚠️ **[Unverified — local model]** ' + rawAnswer
-  } else if (modelUnanswered) {
-    content = rawAnswer || 'I could not answer this question from the selected deal documents.'
-  } else {
-    content = 'I could not verify a source-backed answer from the selected deal documents.'
+    content = rawAnswer || 'I could not answer this question from the selected deal documents.';
+  }
+  // 2️⃣ No citations but a local model produced an answer – show it with badge
+  else if (isLocalModel && rawAnswer) {
+    content = '⚠️ **[Unverified — local model]** ' + rawAnswer;
+  }
+  // 3️⃣ Model explicitly returned `unanswered: true`
+  else if (response.unanswered === true) {
+    content = rawAnswer || 'I could not answer this question from the selected deal documents.';
+  }
+  // 4️⃣ Fallback when nothing useful is present
+  else {
+    content = 'I could not verify a source‑backed answer from the selected deal documents.';
   }
 
   return {
@@ -802,7 +803,7 @@ export class ConversationManager {
     this.context = options.context
     this.projectRoot = options.projectRoot
     this.onEvent = options.onEvent
-    this.executor = options.executor ?? createCodexConversationExecutor()
+    this.executor = options.executor ?? createOllamaConversationExecutor();
     this.enabled = options.enabled ?? true
     this.maxConcurrent = Math.max(1, Math.min(4, options.maxConcurrent ?? 2))
     this.maxQueued = Math.max(1, Math.min(64, options.maxQueued ?? DEFAULT_MAX_QUEUED_TURNS))
@@ -982,7 +983,34 @@ export class ConversationManager {
     })
 
     try {
-      const bundle = buildConversationEvidenceBundle(this.context, thread.dealId, thread.agentId, active.pending.thread.documentIds)
+      
+      // If no evidence documents are present, inject a synthetic document derived from the deal JSON
+      if (bundle.documents.length === 0 && bundle.deal) {
+        const syntheticDoc = {
+          documentId: 'synthetic-deal-json',
+          fileName: 'deal.json (synthetic)',
+          type: 'json',
+          typeLabel: 'Deal Data',
+          status: 'applied',
+          extractionStatus: 'extracted',
+          sourceHash: '',
+          lifecycleReason: '',
+          summary: 'Static deal data (auto‑generated synthetic document).',
+          extraction: {
+            status: 'complete',
+            fields: Object.entries(bundle.deal).map(([key, value]) => ({
+              path: key,
+              value: typeof value === 'object' ? JSON.stringify(value) : String(value),
+              sourceRef: { raw: `${key}: ${value}` },
+            })),
+            metrics: {},
+            notes: [],
+            uploadedData: undefined,
+          },
+        } as any;
+        bundle.documents.push(syntheticDoc);
+      }
+
       const guidePath = resolve(this.projectRoot, bundle.agent.promptPath)
       const guideRelative = relative(this.projectRoot, guidePath)
       if (!guideRelative || guideRelative.startsWith('..') || isAbsolute(guideRelative) || !existsSync(guidePath)) {
@@ -1208,3 +1236,5 @@ export class ConversationManager {
     }
   }
 }
+
+
