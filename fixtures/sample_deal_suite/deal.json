@@ -1,0 +1,98 @@
+{
+  "dealId": "summit-ridge-plaza-2026",
+  "dealName": "Summit Ridge Plaza",
+  "property": {
+    "address": "8400 Summit Ridge Blvd",
+    "city": "Austin",
+    "state": "TX",
+    "zip": "78759",
+    "county": "Travis",
+    "submarket": "Northwest Austin Industrial",
+    "msa": "Austin-Round Rock-San Marcos",
+    "propertyType": "industrial-flex",
+    "propertyClass": "A-",
+    "yearBuilt": 1990,
+    "yearRenovated": 2018,
+    "totalUnits": 4,
+    "totalSqFt": 180000,
+    "avgUnitSqFt": 45000,
+    "stories": 1,
+    "buildings": 1,
+    "construction": "steel-tiltwall",
+    "parking": {
+      "type": "surface",
+      "spaces": 380,
+      "covered": 0,
+      "ratio": 2.11
+    },
+    "amenities": [
+      "dock-high doors",
+      "grade-level drive-ins",
+      "24ft clear height",
+      "heavy power 480v",
+      "fiber connectivity",
+      "truck court"
+    ],
+    "unitMix": {
+      "types": [
+        {
+          "type": "Anchor Flex/Industrial",
+          "count": 1,
+          "avgSqFt": 80000,
+          "marketRent": 18.5,
+          "inPlaceRent": 18.5
+        },
+        {
+          "type": "Lab/Flex",
+          "count": 1,
+          "avgSqFt": 50000,
+          "marketRent": 22.0,
+          "inPlaceRent": 22.0
+        },
+        {
+          "type": "Tech Office/R&D",
+          "count": 1,
+          "avgSqFt": 35000,
+          "marketRent": 24.5,
+          "inPlaceRent": 24.5
+        },
+        {
+          "type": "Vacant Flex Suite",
+          "count": 1,
+          "avgSqFt": 15000,
+          "marketRent": 23.0,
+          "inPlaceRent": 0
+        }
+      ]
+    }
+  },
+  "financials": {
+    "askingPrice": 35000000,
+    "currentNOI": 1850000,
+    "trailingT12Revenue": 4177500,
+    "trailingT12Expenses": 1880000,
+    "inPlaceOccupancy": 0.9167
+  },
+  "financing": {
+    "targetLTV": 0.65,
+    "estimatedRate": 0.0625,
+    "loanTerm": 5,
+    "amortization": 30,
+    "loanType": "Commercial Bank"
+  },
+  "investmentStrategy": "value-add",
+  "targetHoldPeriod": 5,
+  "targetIRR": 0.162,
+  "targetEquityMultiple": 1.85,
+  "targetCashOnCash": 0.082,
+  "seller": {
+    "entity": "Summit Ridge Real Estate Partners LP"
+  },
+  "timeline": {
+    "psaExecutionDate": "2026-06-01",
+    "ddStartDate": "2026-06-02",
+    "ddExpirationDate": "2026-07-15",
+    "closingDate": "2026-08-01"
+  },
+  "notes": "Premier commercial flex/industrial asset in Northwest Austin. High renewal probability for anchor tenants. 15,000 SF suite provides immediate leasing upside at market rates of $23.00/SF NNN."
+}

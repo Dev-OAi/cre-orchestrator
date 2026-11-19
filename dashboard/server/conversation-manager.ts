@@ -753,7 +753,8 @@ export function normalizeConversationResponse(
   const citations = validCitations(response, bundle)
   const rawAnswer = safeText(response.answer, 20_000)
   const modelUnanswered = response.unanswered === true
-  const isLocalModel = options?.localModel ?? (process.env.CRE_LLM_PROVIDER === 'ollama')
+  const provider = (process.env.CRE_LLM_PROVIDER || 'ollama').toLowerCase()
+  const isLocalModel = options?.localModel ?? (provider === 'ollama')
 
   // In local-model relaxed mode, show the model's answer even without verified
   // citations.  The response is still flagged unanswered / low-confidence so
@@ -1041,7 +1042,7 @@ export class ConversationManager {
         codexSessionId: result.sessionId,
         codexEvidenceFingerprint: evidenceFingerprint,
       })
-      const normalized = normalizeConversationResponse(result.response, bundle)
+      const normalized = normalizeConversationResponse(result.response, bundle, { localModel: true })
       const completedAt = new Date().toISOString()
       const assistant = persistConversationMessage(this.context, {
         version: 1,

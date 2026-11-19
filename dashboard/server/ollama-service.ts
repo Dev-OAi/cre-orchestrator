@@ -24,7 +24,7 @@ export async function getOllamaStatus(
   customModel?: string,
 ): Promise<OllamaStatus> {
   const host = customHost || process.env.OLLAMA_HOST || 'http://127.0.0.1:11434'
-  const targetModel = customModel || process.env.OLLAMA_MODEL || 'gemma4:e2b'
+  const targetModel = customModel || process.env.OLLAMA_MODEL || 'gemma4-32k:latest'
 
   const now = Date.now()
   if (cachedStatus && now - cachedStatus.timestamp < CACHE_TTL_MS) {
@@ -91,11 +91,12 @@ export function createOllamaConversationExecutor(
   customHost?: string,
 ): ConversationExecutor {
   const host = customHost || process.env.OLLAMA_HOST || 'http://127.0.0.1:11434'
-  const configuredModel = customModel || process.env.OLLAMA_MODEL || 'gemma4:e2b'
+  const configuredModel = customModel || process.env.OLLAMA_MODEL || 'gemma4-32k:latest'
 
   return (request: ConversationExecutorRequest, onActivity: (activity: ConversationActivity) => void): ConversationExecutionHandle => {
     let cancelled = false
     const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), Math.max(request.timeoutMs || 600_000, 600_000))
 
     const result = new Promise<ConversationExecutorResult>(async (resolvePromise, rejectPromise) => {
       onActivity({ kind: 'analyzing', label: `Analyzing deal with Ollama (${configuredModel})` })
@@ -126,6 +127,7 @@ export function createOllamaConversationExecutor(
         }
 
         onActivity({ kind: 'answering', label: 'Preparing verified specialist answer' })
+        clearTimeout(timeout)
 
         const data = (await response.json()) as { message?: { content?: string } }
         const rawContent = data.message?.content || '{}'
@@ -136,9 +138,25 @@ export function createOllamaConversationExecutor(
         } catch {
           const match = rawContent.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1]
           if (match) {
-            parsed = JSON.parse(match.trim()) as Record<string, unknown>
+            try {
+              parsed = JSON.parse(match.trim()) as Record<string, unknown>
+            } catch {
+              parsed = {
+                answer: rawContent.trim(),
+                citations: [],
+                confidence: 'medium',
+                unanswered: false,
+                followUpSuggestions: [],
+              }
+            }
           } else {
-            throw new ConversationExecutionError('Ollama returned invalid JSON response.', 'invalid_response', true)
+            parsed = {
+              answer: rawContent.trim(),
+              citations: [],
+              confidence: 'medium',
+              unanswered: false,
+              followUpSuggestions: [],
+            }
           }
         }
 
@@ -147,6 +165,7 @@ export function createOllamaConversationExecutor(
           response: parsed,
         })
       } catch (err) {
+        clearTimeout(timeout)
         if (cancelled) {
           rejectPromise(new ConversationExecutionError('The conversation turn was cancelled.', 'cancelled', true))
           return

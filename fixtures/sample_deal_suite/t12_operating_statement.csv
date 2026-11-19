@@ -1,0 +1,17 @@
+Account Number,Line Item Description,Total T12 Amount,Notes
+4100,Gross Base Rent,$3437500,Contractual rental revenue
+4200,CAM Reimbursements,$525000,Operating expense recoveries
+4300,Real Estate Tax Reimbursements,$420000,Property tax recoveries
+4900,Gross Operating Revenues,$4382500,Total revenue before concessions
+4950,Credit Loss & Vacancy Allowance,-$205000,5.0% economic allowance
+4999,Effective Gross Income (EGI),$4177500,Net realized revenues
+5100,Property Management Fees,$135000,3.2% of EGI
+5200,Real Estate Taxes,$640000,Travis County ad valorem
+5300,Property & Casualty Insurance,$185000,Annual premium package
+5400,Utilities & Electric,$310000,Common area + warehouse base
+5500,Repairs & Maintenance,$295000,HVAC and grounds contracts
+5600,Contract Services & Security,$160000,Janitorial and exterior patrol
+5700,General & Administrative,$65000,Legal audit accounting
+5800,Capital Reserves & Replacements,$90000,$0.50/SF replacement reserve
+5999,Total Operating Expenses,$1880000,Total operating outlay
+6000,Net Operating Income (NOI),$1850000,Normalized in-place NOI
