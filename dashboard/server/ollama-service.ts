@@ -109,7 +109,7 @@ export function createOllamaConversationExecutor(
           body: JSON.stringify({
             model: configuredModel,
             messages: [{ role: 'user', content: request.prompt }],
-            format: 'json',
+            // format: 'json', // removed to allow plain text output
             stream: false,
             options: {
               temperature: 0.2,
